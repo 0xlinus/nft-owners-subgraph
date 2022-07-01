@@ -47,7 +47,7 @@ export function handleTransferErc721 (event: Transfer): void {
 
   let id = address + '/' + event.params.tokenId.toString()
   let nft = Nft.load(id)
-  if (nft.creatorAddress == null) {
+  if (nft && !nft.creatorAddress) {
     nft.creatorAddress = event.params.to
     nft.save()
   }

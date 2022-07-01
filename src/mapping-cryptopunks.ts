@@ -115,7 +115,7 @@ export function processTransfer (
     let contractOwner = ContractOwner.load(contractOwnerId) 
     if (contractOwner != null) {
       // if numTokens = 1, transferring from this user, decerment numOwners in NftContract
-      if (contractOwner.numTokens.equals(BIGINT_ONE)) {
+      if (nftContract && contractOwner.numTokens.equals(BIGINT_ONE)) {
         nftContract.numOwners = nftContract.numOwners.minus(BIGINT_ONE);
       }
       contractOwner.numTokens = contractOwner.numTokens.minus(BIGINT_ONE);
@@ -127,7 +127,7 @@ export function processTransfer (
 
   if (to != ZERO_ADDRESS) {
     // minting 1
-    if (from == ZERO_ADDRESS) {
+    if (nftContract && from == ZERO_ADDRESS) {
       nftContract.numTokens = nftContract.numTokens.plus(BIGINT_ONE);
     }
 
@@ -135,7 +135,7 @@ export function processTransfer (
     let newContractOwnerId = contractAddress.toHexString() + "/" + to.toHexString();
     let newContractOwner = ContractOwner.load(newContractOwnerId)
     // empty = new owner
-    if (newContractOwner == null) {
+    if (nftContract && newContractOwner == null) {
       newContractOwner = new ContractOwner(newContractOwnerId);
       newContractOwner.owner = ownershipId;
       newContractOwner.contract = nftContract.id;
@@ -143,16 +143,22 @@ export function processTransfer (
     }
 
     // if numTokens = 0, new owner found, increment numOwners in NftContract
-    if (newContractOwner.numTokens.equals(BIGINT_ZERO)) {
+    if (nftContract && newContractOwner && newContractOwner.numTokens.equals(BIGINT_ZERO)) {
       nftContract.numOwners = nftContract.numOwners.plus(BIGINT_ONE);
     }
-    newContractOwner.numTokens = newContractOwner.numTokens.plus(BIGINT_ONE);
-    newContractOwner.save();
+    if(newContractOwner) {
+      newContractOwner.numTokens = newContractOwner.numTokens.plus(BIGINT_ONE);
+      newContractOwner.save();
+    }
     // nftContract.numTokens = nftContract.numTokens.plus(BIGINT_ONE);    
   } else { // burn
     // store.remove('Nft', id);
-    nftContract.numTokens = nftContract.numTokens.minus(BIGINT_ONE);
+    if(nftContract) {
+      nftContract.numTokens = nftContract.numTokens.minus(BIGINT_ONE);
+    }
   }
-  nftContract.save();
+  if(nftContract) {
+    nftContract.save();
+  }
   updateOwnership(nftId, to, value, nftContract, nftOwner, timestamp);
 }

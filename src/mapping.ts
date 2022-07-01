@@ -41,7 +41,7 @@ export function handleTransfer (event: Transfer): void {
     let contractOwner = ContractOwner.load(contractOwnerId) 
     if (contractOwner != null) {
       // if numTokens = 1, transferring from this user, decerment numOwners in NftContract
-      if (contractOwner.numTokens != null && contractOwner.numTokens.equals(BIGINT_ONE)) {
+      if (nftContract && contractOwner.numTokens && contractOwner.numTokens.equals(BIGINT_ONE)) {
         nftContract.numOwners = nftContract.numOwners.minus(BIGINT_ONE);
       }
       contractOwner.numTokens = contractOwner.numTokens.minus(BIGINT_ONE);
@@ -54,7 +54,7 @@ export function handleTransfer (event: Transfer): void {
   if (event.params.to != ZERO_ADDRESS) {
 
     // minting 1
-    if (event.params.from == ZERO_ADDRESS) {
+    if (nftContract && event.params.from == ZERO_ADDRESS) {
       nftContract.numTokens = nftContract.numTokens.plus(BIGINT_ONE);
     }
     // Transferring to, increment numTokens for this owner
@@ -64,22 +64,26 @@ export function handleTransfer (event: Transfer): void {
     if (newContractOwner == null) {
       newContractOwner = new ContractOwner(newContractOwnerId);
       newContractOwner.owner = ownershipId;
-      newContractOwner.contract = nftContract.id;
+      if(nftContract) {
+        newContractOwner.contract = nftContract.id;
+      }
       newContractOwner.numTokens = BIGINT_ZERO;
-
     }
     // if numTokens = 0, new owner found, increment numOwners in NftContract
-    if (newContractOwner.numTokens.equals(BIGINT_ZERO)) {
+    if (nftContract && newContractOwner.numTokens.equals(BIGINT_ZERO)) {
       nftContract.numOwners = nftContract.numOwners.plus(BIGINT_ONE);
     }
     newContractOwner.numTokens = newContractOwner.numTokens.plus(BIGINT_ONE);
     newContractOwner.save();
   } else { // burn
     // store.remove('Nft', id);
-    nftContract.numTokens = nftContract.numTokens.minus(BIGINT_ONE);
+    if(nftContract) {
+      nftContract.numTokens = nftContract.numTokens.minus(BIGINT_ONE);
+    }
   }
-
-  nftContract.save();
+  if(nftContract) {
+    nftContract.save();
+  }
   updateOwnership(nftId, event.params.to, BIGINT_ONE, nftContract, nftOwner, event.block.timestamp)
 }
 
@@ -99,7 +103,9 @@ export function updateOwnership (
     nftOwner.nft = nftId
     nftOwner.owner = owner
     nftOwner.quantity = BIGINT_ZERO
-    nftOwner.contract = contract.id
+    if(contract) {
+      nftOwner.contract = contract.id
+    }
   }
 
   let newQuantity = nftOwner.quantity.plus(deltaQuantity)
@@ -138,6 +144,7 @@ export function normalize (strValue: string): string {
   }
 }
 
+    //@ts-ignore
 export function setCharAt (str: string, index: i32, char: string): string {
   if (index > str.length - 1) return str
   return str.substr(0, index) + char + str.substr(index + 1)
@@ -146,9 +153,10 @@ export function setCharAt (str: string, index: i32, char: string): string {
 export function toBytes (hexString: String): Bytes {
   let result = new Uint8Array(hexString.length / 2)
   for (let i = 0; i < hexString.length; i += 2) {
+    //@ts-ignore
     result[i / 2] = parseInt(hexString.substr(i, 2), 16) as u32
   }
-  return result as Bytes
+  return Bytes.fromUint8Array(result)
 }
 
 export function fetchName (tokenAddress: Address): string {

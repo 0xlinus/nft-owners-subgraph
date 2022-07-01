@@ -106,7 +106,7 @@ function transferBase (
     let contractOwner = ContractOwner.load(contractOwnerId) 
     if (contractOwner != null) {
       // if numTokens = 1, transferring from this user, decerment numOwners in NftContract
-      if (contractOwner.numTokens != null && contractOwner.numTokens.equals(BIGINT_ONE)) {
+      if (nftContract && contractOwner.numTokens && contractOwner.numTokens.equals(BIGINT_ONE)) {
         nftContract.numOwners = nftContract.numOwners.minus(BIGINT_ONE);
       }
       contractOwner.numTokens = contractOwner.numTokens.minus(BIGINT_ONE);
@@ -124,19 +124,23 @@ function transferBase (
     if (newContractOwner == null) {
       newContractOwner = new ContractOwner(newContractOwnerId);
       newContractOwner.owner = ownershipId;
-      newContractOwner.contract = nftContract.id;
+      if(nftContract) {
+        newContractOwner.contract = nftContract.id;
+      }
       newContractOwner.numTokens = BIGINT_ZERO;
     }
 
     // if numTokens = 0, new owner found, increment numOwners in NftContract
-    if (newContractOwner.numTokens.equals(BIGINT_ZERO)) {
+    if (nftContract && newContractOwner.numTokens.equals(BIGINT_ZERO)) {
       nftContract.numOwners = nftContract.numOwners.plus(BIGINT_ONE);
     }
     newContractOwner.numTokens = newContractOwner.numTokens.plus(BIGINT_ONE);
     newContractOwner.save();
   } else { // burn
     // store.remove('Nft', id);
-    nftContract.numTokens = nftContract.numTokens.minus(BIGINT_ONE);
+    if(nftContract) {
+      nftContract.numTokens = nftContract.numTokens.minus(BIGINT_ONE);
+    }
   }
   updateOwnership(nftId, to, value, nftContract, nftOwner, timestamp);
 }
